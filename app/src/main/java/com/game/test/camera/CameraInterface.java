@@ -48,6 +48,7 @@ public class CameraInterface {
     private CaptureRequest.Builder mCaptureRequestBuilder;
     private ImageReader mImageReader;
 
+    private boolean isClosed = false;
     private boolean isPreviewing = false;
     private boolean mFlashSupported = false;
 
@@ -107,7 +108,7 @@ public class CameraInterface {
                     mCharacteristics = characteristics;
                     mCameraId = id;
                     Log.i(TAG, "openCamera: " + mCameraId);
-                    return;
+                    break;
                 }
             }
             // 获取StreamConfigurationMap，它是管理摄像头支持的所有输出格式和尺寸
@@ -215,6 +216,7 @@ public class CameraInterface {
                 Log.e(TAG, "openCamera: mCameraId is NULL");
                 return false;
             }
+            isClosed = false;
             // 开启相机，第一个参数指示打开哪个摄像头，第二个参数mStateCallback为相机的状态回调接口，第三个参数用来确定Callback在哪个线程执行，为null的话就在当前线程执行
             cameraManager.openCamera(mCameraId, mStateCallback, mCameraHandler);
         } catch (CameraAccessException e) {
@@ -228,6 +230,7 @@ public class CameraInterface {
      * 关闭相机
      */
     public void stopCamera() {
+        isClosed = true;
         if (mCaptureSession != null) {
             if (isPreviewing) {
                 try {
@@ -321,8 +324,8 @@ public class CameraInterface {
              * @format 此处还有很多格式，比如我所用到YUV等
              * @maxImages 最大的图片数，mImageReader里能获取到图片数，但是实际中是2+1张图片，就是多一张
              */
-//            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.YUV_420_888, 1);
-            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.JPEG, 2);
+            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.YUV_420_888, 1);
+//            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.JPEG, 2);
             mImageReader.setOnImageAvailableListener(mOnByteAvailableListener, mCameraHandler);
             // 添加输出的surface
             // 这里一定分别add两个surface，一个Textureview的，一个ImageReader的，如果没add，会造成没摄像头预览，或者没有ImageReader的那个回调！！
@@ -365,8 +368,8 @@ public class CameraInterface {
     private ImageReader.OnImageAvailableListener mOnByteAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = reader.acquireLatestImage();// 最后一帧
-            if (image == null) {
+            Image image = reader.acquireNextImage();// 最后一帧
+            if (image == null || isClosed) {
                 return;
             }
             ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
@@ -388,7 +391,8 @@ public class CameraInterface {
 
     private void resetPreview() {
         try {
-            mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            mImageReader.setOnImageAvailableListener(mOnByteAvailableListener, mCameraHandler);
+            mCaptureSession.setRepeatingRequest(mCaptureRequestBuilder.build(), null, mCameraHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -425,12 +429,15 @@ public class CameraInterface {
     private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = reader.acquireLatestImage();
+            Image image = reader.acquireNextImage();
+            if (image == null || isClosed) {
+                return;
+            }
             SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMddHHmmss");
             String name = sdf.format(new Date()) + ".jpeg";
             String path = Environment.getExternalStorageDirectory().getPath() + "/DCIM/Pictures/" + name;
             mCameraHandler.post(new ImageSaver(image,path, null));
-            createCameraPreviewSession();
+            resetPreview();
         }
     };
 
