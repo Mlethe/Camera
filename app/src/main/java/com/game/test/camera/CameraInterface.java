@@ -11,6 +11,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -20,6 +21,7 @@ import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
 
 import java.nio.ByteBuffer;
@@ -30,6 +32,14 @@ import java.util.Date;
 public class CameraInterface {
 
     private static final String TAG = "CameraInterface";
+
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
 
     // 摄像头管理者
     private CameraManager cameraManager;
@@ -235,7 +245,6 @@ public class CameraInterface {
             if (isPreviewing) {
                 try {
                     mCaptureSession.stopRepeating();
-                    mCaptureSession.abortCaptures();
                     isPreviewing = false;
                 } catch (CameraAccessException e) {
                     e.printStackTrace();
@@ -244,21 +253,26 @@ public class CameraInterface {
             mCaptureSession.close();
             mCaptureSession = null;
         }
-        if (mImageReader != null) {
-            mImageReader.close();
-            mImageReader = null;
-        }
         if (mCameraDevice != null) {
             mCameraDevice.close();
             mCameraDevice = null;
         }
+        if (mImageReader != null) {
+            mImageReader.close();
+            mImageReader = null;
+        }
         mCaptureRequestBuilder = null;
         mPreviewSize = new Size(-1, -1);
         mPreviewCallback = null;
-        mCameraHandler = null;
-        if (mCameraThread != null) {
-            mCameraThread.quitSafely();
-            mCameraThread = null;
+        try {
+            if (mCameraThread != null) {
+                mCameraThread.quitSafely();
+                mCameraThread.join();
+                mCameraThread = null;
+            }
+            mCameraHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         mCameraId = null;
         mCharacteristics = null;
@@ -324,8 +338,8 @@ public class CameraInterface {
              * @format 此处还有很多格式，比如我所用到YUV等
              * @maxImages 最大的图片数，mImageReader里能获取到图片数，但是实际中是2+1张图片，就是多一张
              */
-            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.YUV_420_888, 1);
-//            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.JPEG, 2);
+//            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.YUV_420_888, 1);
+            mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.JPEG, 2);
             mImageReader.setOnImageAvailableListener(mOnByteAvailableListener, mCameraHandler);
             // 添加输出的surface
             // 这里一定分别add两个surface，一个Textureview的，一个ImageReader的，如果没add，会造成没摄像头预览，或者没有ImageReader的那个回调！！
@@ -385,6 +399,7 @@ public class CameraInterface {
                 byteBuffer.clear();
                 // 一定要关闭
                 image.close();
+                image = null;
             }
         }
     };
@@ -400,13 +415,13 @@ public class CameraInterface {
 
     /**
      * 拍照
+     * @param rotation 手机方向
      */
-    public void takePicture() {
+    public void takePicture(int rotation) {
         if (mCameraDevice == null) return;
-        // 创建拍照需要的CaptureRequest.Builder
-        final CaptureRequest.Builder captureRequestBuilder;
         try {
-            captureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            // 创建拍照需要的CaptureRequest.Builder
+            CaptureRequest.Builder captureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             // 将imageReader的surface作为CaptureRequest.Builder的目标
             mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mCameraHandler);
             captureRequestBuilder.addTarget(mImageReader.getSurface());
@@ -414,13 +429,20 @@ public class CameraInterface {
             captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             // 自动曝光
             captureRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-            // 获取手机方向
-//            int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
             // 根据设备方向计算设置照片的方向
-//            captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-            //拍照
-            CaptureRequest mCaptureRequest = captureRequestBuilder.build();
-            mCaptureSession.capture(mCaptureRequest, null, mCameraHandler);
+            captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
+            // 这个回调接口用于拍照结束时重启预览，因为拍照会导致预览停止
+            CameraCaptureSession.CaptureCallback mImageSavedCallback = new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                    // 重启预览
+                    resetPreview();
+                }
+            };
+            // 停止预览
+            mCaptureSession.stopRepeating();
+            // 拍照
+            mCaptureSession.capture(captureRequestBuilder.build(), mImageSavedCallback, mCameraHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -433,11 +455,10 @@ public class CameraInterface {
             if (image == null || isClosed) {
                 return;
             }
-            SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMddHHmmss");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
             String name = sdf.format(new Date()) + ".jpeg";
             String path = Environment.getExternalStorageDirectory().getPath() + "/DCIM/Pictures/" + name;
-            mCameraHandler.post(new ImageSaver(image,path, null));
-            resetPreview();
+            mCameraHandler.post(new ImageSaver(image, path, null));
         }
     };
 

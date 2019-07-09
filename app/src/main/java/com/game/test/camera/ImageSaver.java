@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ImageSaver implements Runnable {
+
+    private static final String TAG = "ImageSaver";
     private Image mImage;
     private String mPathName;
     private CameraCallback mCameraCallback;
@@ -24,12 +26,21 @@ public class ImageSaver implements Runnable {
         if (mImage == null) {
             return;
         }
+        String path = mPathName.substring(0, mPathName.lastIndexOf("/"));
+        Log.e(TAG, "run: " + path);
+        File pathFile = new File(path);
+        if (!pathFile.exists()) {
+            pathFile.mkdirs();
+        }
         ByteBuffer byteBuffer = mImage.getPlanes()[0].getBuffer();
         byte[] data = new byte[byteBuffer.remaining()];
         byteBuffer.get(data);
         File file = new File(mPathName);
         FileOutputStream fos = null;
         try {
+            if (!file.exists()) {
+                file.createNewFile();
+            }
             fos = new FileOutputStream(file);
             fos.write(data, 0 ,data.length);
             if (mCameraCallback != null) {
@@ -54,6 +65,7 @@ public class ImageSaver implements Runnable {
             byteBuffer.clear();
             // 一定要关闭
             mImage.close();
+            mImage = null;
         }
     }
 }

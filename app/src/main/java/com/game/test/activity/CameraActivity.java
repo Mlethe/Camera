@@ -2,6 +2,7 @@ package com.game.test.activity;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import com.game.test.R;
@@ -9,6 +10,8 @@ import com.game.test.camera.CameraInterface;
 import com.game.test.camera.CameraTextureView;
 
 public class CameraActivity extends AppCompatActivity implements View.OnClickListener {
+
+    private static final String TAG = "CameraActivity";
 
     private CameraTextureView vameraTv;
 
@@ -24,7 +27,10 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     public void onClick(View v) {
         int id = v.getId();
         if (id == R.id.take_pic_iv) {
-            CameraInterface.getInstance().takePicture();
+            //获取屏幕方向
+            int rotation = getWindowManager().getDefaultDisplay().getRotation();
+            Log.e(TAG, "onClick: " + rotation);
+            CameraInterface.getInstance().takePicture(rotation);
         }
     }
 }
