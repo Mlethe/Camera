@@ -3,27 +3,27 @@ package com.game.test.camera;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.Size;
 import android.view.TextureView;
 
-public class CameraTextureView extends TextureView implements TextureView.SurfaceTextureListener, CameraInterface.PreviewCallback {
+public class AutoFitTextureView extends TextureView implements TextureView.SurfaceTextureListener, CameraInterface.PreviewCallback {
 
     private SurfaceViewListener mSurfaceViewListener;
 
     private int mRatioWidth = 0;
     private int mRatioHeight = 0;
 
-    public CameraTextureView(Context context) {
+    public AutoFitTextureView(Context context) {
         this(context, null);
     }
 
-    public CameraTextureView(Context context, AttributeSet attrs) {
+    public AutoFitTextureView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public CameraTextureView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public AutoFitTextureView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        CameraInterface.getInstance().init(context);
         setSurfaceTextureListener(this);
     }
 
@@ -43,8 +43,9 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
      */
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        Log.e("TAG", "onSurfaceTextureAvailable: " + width + "     height->" + height);
         CameraInterface.getInstance().setPreviewCallback(this);
-        CameraInterface.getInstance().openCamera(surface);
+        CameraInterface.getInstance().openCamera(width, height);
     }
 
     /**
@@ -55,7 +56,7 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
      */
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
+        CameraInterface.getInstance().configureTransform(width, height);
     }
 
     /**
@@ -65,7 +66,7 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
      */
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-        CameraInterface.getInstance().stopCamera();
+        CameraInterface.getInstance().closeCamera();
         return true;
     }
 
@@ -106,7 +107,7 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
         requestLayout();
     }
 
-    @Override
+   /*@Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         int width = MeasureSpec.getSize(widthMeasureSpec);
@@ -120,7 +121,7 @@ public class CameraTextureView extends TextureView implements TextureView.Surfac
                 setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
             }
         }
-    }
+    }*/
 
 }
 
