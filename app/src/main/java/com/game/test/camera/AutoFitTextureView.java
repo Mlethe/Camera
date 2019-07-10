@@ -107,6 +107,11 @@ public class AutoFitTextureView extends TextureView implements TextureView.Surfa
         requestLayout();
     }
 
+    /**
+     * 固定宽高
+     * @param widthMeasureSpec
+     * @param heightMeasureSpec
+     */
    /*@Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
