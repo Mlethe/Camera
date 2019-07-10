@@ -17,4 +17,32 @@
         android:layout_marginBottom="30dp"
         android:src="@mipmap/ic_take_picture" />
 
+    <LinearLayout
+        android:id="@+id/record_stop_layout"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="30dp"
+        android:background="@drawable/float_record"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:background="@drawable/float_record_stop" />
+
+        <Chronometer
+            android:id="@+id/record_chronometer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:focusable="true"
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
 </RelativeLayout>

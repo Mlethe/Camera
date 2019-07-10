@@ -13,9 +13,9 @@ public class ImageSaver implements Runnable {
     private static final String TAG = "ImageSaver";
     private Image mImage;
     private String mPathName;
-    private CameraCallback mCameraCallback;
+    private SaveListener mCameraCallback;
 
-    public ImageSaver(Image image, String path, CameraCallback callback) {
+    public ImageSaver(Image image, String path, SaveListener callback) {
         this.mImage = image;
         this.mPathName = path;
         this.mCameraCallback = callback;
@@ -27,7 +27,6 @@ public class ImageSaver implements Runnable {
             return;
         }
         String path = mPathName.substring(0, mPathName.lastIndexOf("/"));
-        Log.e(TAG, "run: " + path);
         File pathFile = new File(path);
         if (!pathFile.exists()) {
             pathFile.mkdirs();
@@ -44,9 +43,8 @@ public class ImageSaver implements Runnable {
             fos = new FileOutputStream(file);
             fos.write(data, 0 ,data.length);
             if (mCameraCallback != null) {
-                mCameraCallback.onCapture(mPathName);
+                mCameraCallback.onSave(mPathName);
             }
-            Log.e("TAG", "run: " + mPathName);
         } catch (IOException e) {
             e.printStackTrace();
             if (mCameraCallback != null) {

@@ -3,13 +3,10 @@ package com.game.test.camera;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.Size;
 import android.view.TextureView;
 
-public class AutoFitTextureView extends TextureView implements TextureView.SurfaceTextureListener, CameraInterface.PreviewCallback {
-
-    private SurfaceViewListener mSurfaceViewListener;
+public class AutoFitTextureView extends TextureView implements TextureView.SurfaceTextureListener {
 
     private int mRatioWidth = 0;
     private int mRatioHeight = 0;
@@ -28,14 +25,6 @@ public class AutoFitTextureView extends TextureView implements TextureView.Surfa
     }
 
     /**
-     * 设置回调
-     * @param surfaceViewListener
-     */
-    public void setSurfaceViewListener(SurfaceViewListener surfaceViewListener) {
-        this.mSurfaceViewListener = surfaceViewListener;
-    }
-
-    /**
      * 在SurfaceTexture准备使用时调用
      * @param surface
      * @param width
@@ -43,8 +32,6 @@ public class AutoFitTextureView extends TextureView implements TextureView.Surfa
      */
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        Log.e("TAG", "onSurfaceTextureAvailable: " + width + "     height->" + height);
-        CameraInterface.getInstance().setPreviewCallback(this);
         CameraInterface.getInstance().openCamera(width, height);
     }
 
@@ -77,17 +64,6 @@ public class AutoFitTextureView extends TextureView implements TextureView.Surfa
     @Override
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 
-    }
-
-    @Override
-    public void onPreviewFrame(byte[] data, Size size) {
-        if (mSurfaceViewListener != null) {
-            mSurfaceViewListener.onPreviewFrame(data, size);
-        }
-    }
-
-    public interface SurfaceViewListener {
-        void onPreviewFrame(byte[] data, Size size);
     }
 
     /**

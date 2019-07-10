@@ -16,4 +16,10 @@
         android:layout_height="wrap_content"
         android:text="拍照" />
 
+    <Button
+        android:id="@+id/record_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="录屏" />
+
 </LinearLayout>
