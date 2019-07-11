@@ -1097,8 +1097,7 @@ public class CameraInterface {
                 filename = sdf.format(new Date()) + random + ".mp4";
             }
         }
-        String filePath = path + "/" + filename;
-        file = new File(filePath);
+        file = new File(path, filename);
         if (!file.exists()) {
             try {
                 file.createNewFile();

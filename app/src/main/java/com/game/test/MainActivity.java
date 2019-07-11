@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import com.game.test.activity.AudioActivity;
 import com.game.test.activity.CameraActivity;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
@@ -31,7 +32,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             permissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO)
                     .subscribe(grant -> {
                         if (grant) {
-
+                            Intent intent = new Intent(this, AudioActivity.class);
+                            startActivity(intent);
                         } else {
                             Toast.makeText(this, "请到“应用管理->权限管理”开启读写、录音权限", Toast.LENGTH_SHORT).show();
                         }
